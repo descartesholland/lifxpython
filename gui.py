@@ -15,7 +15,9 @@ import RPi.GPIO as GPIO
 
 KAFKA_CONNECT = False
 
-MIN_REFRESH_INTERVAL = 5000
+MIN_REFRESH_INTERVAL = 5
+LAST_UPDATE = 0
+lastUpdateTimestamp = 0
 
 lifx = Lifx(num_bulbs = 1)
 @lifx.on_connected
@@ -47,33 +49,33 @@ rCan = tk.Canvas(top, width='255', height=barHeight, relief='raised', bg='black'
 rCan.create_polygon(0, 0, 0, barHeight, sumR, barHeight, sumR, 0, fill = 'red')
 rCan.grid(column=0, columnspan=2, row = 2, sticky='w', padx='5')
 
-rCanStrVar = tk.StrVar()
-rCanStrVar.set(String(100))
-rLabel = tk.Label(top, anchor='center', bd=0, cursor='dot', fg='red', textvariable=rCanStrVar)
+rCanStrVar = tk.StringVar()
+rCanStrVar.set(str(100))
+rLabel = tk.Label(top, anchor='center', bd=0, bg='black', cursor='dot', fg='red', textvariable=rCanStrVar)
 rLabel.grid(column = 2, row = 2, sticky='w')
 
-gCan = tk.Canvas(top, width='255', height=barHeight, relief='raised', bg='black')
+gCan = tk.Canvas(top, width='255', height=barHeight, relief='raised', cursor='dot', bg='black')
 gCan.create_polygon(0, 0, 0, barHeight, sumG, barHeight, sumG, 0, fill='green')
 gCan.grid(column=0, columnspan=2, row = 3, sticky='w', padx='5')
 
 gCanStrVar = tk.StringVar()
-gCanStrVar.set(String(100))
-gLabel = tk.Label(top, anchor='center', bd=0, cursor='dot', fg='green', textvariable=gCanStrVar)
+gCanStrVar.set(str(100))
+gLabel = tk.Label(top, anchor='center', bd=0, cursor='dot', bg='black', fg='green', textvariable=gCanStrVar)
 gLabel.grid(column = 2, row = 3, sticky='w')
 
-bCan = tk.Canvas(top, width='255', height=barHeight, relief='raised', bg='black')
+bCan = tk.Canvas(top, width='255', height=barHeight, relief='raised', cursor='dot', bg='black')
 bCan.create_polygon(0, 0, 0, barHeight, sumB, barHeight, sumB, 0, fill='blue')
 bCan.grid(column=0, columnspan=2, row = 4, sticky='w', padx='5')
 
-bCanStrVar = tk.StrVar()
-bCanStrVar.set(String(100))
-bLabel = tk.Label(top, anchor='center', bd=0, cursor='dot', fg='blue', textvariable=bCanStrVar)
+bCanStrVar = tk.StringVar()
+bCanStrVar.set(str(100))
+bLabel = tk.Label(top, anchor='center', bd=0, cursor='dot', fg='blue', bg='black', textvariable=bCanStrVar)
 bLabel.grid(column = 2, row = 4, sticky='w')
 
 
-top.columnconfigure(0, weight=1)
-top.columnconfigure(1, weight=1)
-top.columnconfigure(2, weight=0.3)
+top.columnconfigure(0, weight=3)
+top.columnconfigure(1, weight=3)
+top.columnconfigure(2, weight=1)
 top.rowconfigure(0, weight=2)
 top.rowconfigure(1, weight=1)
 top.rowconfigure(2, weight=1)
@@ -93,13 +95,13 @@ def RGBtoHSB(r, g, b):
    
    bright = float(_max)
    if _max != 0:
-      sat = 255 * delta / float(_max)
+      sat = delta / float(_max)
    else:
       sat = 0
    if sat != 0:
-      if r == _max:
+      if r == max(r, g, b):
          hue = float(g/float(255) - b/float(255)) / delta
-      elif g == _max:
+      elif g == max(r, g, b):
          hue = 2 + (b/float(255) - r/float(255)) / delta
       else:
          hue = 4 + float(r/float(255) - g/float(255)) / delta
@@ -113,33 +115,38 @@ def RGBtoHSB(r, g, b):
 
 
 def resend():
-   hsb = RGBtoHSB(rCanStrVar.get() / float(buffSize), int(gCanStrVar.get()) / float(buffSize), int(bCanStrVar.get()) / float(buffSize))
-   print('updating', hsb)
+   print 'resend'
+   if timer() > LAST_UPDATE + MIN_REFRESH_INTERVAL:
+      hsb = RGBtoHSB(float(rCanStrVar.get()), float(gCanStrVar.get()), float(bCanStrVar.get()))
+      print('HSB', hsb[0], " ", hsb[1], " ", hsb[2])
       
-   lifx.set_light_state(hsb[0], hsb[1], hsb[2], 2400, timeout=3)
-   print('updated')
-
+      lifx.set_light_state(hsb[0], hsb[1], hsb[2], 2700, timeout=2)
+      print('updated')
+   else:
+      print("Timer:", timer(), " prv:", LAST_UPDATE)
    top.update_idletasks()
    top.update()
 
-
 def updateHeight(can, val, _fill):
-    can.create_polygon(0, 0, 0, barHeight, val, barHeight, val, 0, fill=_fill)
-    can.create_polygon(val, 0, val, barHeight, 255, barHeight, 255, 0, fill='black')
-    if timer() > lastUpdateTimestamp + MIN_REFRESH_INTERVAL:
-        resend()
-
-
-lastUpdateTimestamp = timer()
-
+   if _fill == 'red':
+      rCanStrVar.set(str(val))
+   elif _fill == 'green':
+      gCanStrVar.set(str(val))
+   elif _fill == 'blue':
+      bCanStrVar.set(str(val))
+   can.create_polygon(0, 0, 0, barHeight, val, barHeight, val, 0, fill=_fill)
+   can.create_polygon(val, 0, val, barHeight, 255, barHeight, 255, 0, fill='black')
+   resend()
+     
+#t = threading.Timer(1, resend)
 def updateCanvas(fill):
-    if _fill == 'red':
-        rCanStrVar.set(String(val))
-    elif _fill == 'green':
-        gCanStrVar.set(String(val))
-    elif _fill == 'blue':
-        bCanStrVar.set(String(val))
-
+    #if fill == 'red':
+    #    rCanStrVar.set(str(event.x))
+    #elif fill == 'green':
+    #    gCanStrVar.set(str(event.x))
+    #elif fill == 'blue':
+    #    bCanStrVar.set(str(event.x))
+    #t.start()
     return lambda event:updateHeight(event.widget, event.x, fill)
 
 rCan.bind("<Button-1>", updateCanvas('red'))
@@ -149,6 +156,8 @@ bCan.bind("<Button-1>", updateCanvas('blue'))
 
             
 # Main program
+lastUpdateTimestamp = timer()
+LAST_UPDATE = timer()
 if(KAFKA_CONNECT):
    producer = KafkaProducer(bootstrap_servers='128.157.15.203:2181', client_id='R_PI', api_version="0.10")
 
