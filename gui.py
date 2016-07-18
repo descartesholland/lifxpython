@@ -43,6 +43,9 @@ offButton.grid(column = 0, columnspan = 1, row = 0, sticky='nsew')
 sumR = 100
 sumG = 100
 sumB = 100
+def printer(x, y):
+   print ('x', x, 'y', y)
+   return lambda event:1+2
 
 barHeight = '20'
 rCan = tk.Canvas(top, width='255', height=barHeight, relief='raised', bg='black', cursor='dot')
@@ -57,7 +60,7 @@ rLabel.grid(column = 2, row = 2, sticky='w')
 gCan = tk.Canvas(top, width='255', height=barHeight, relief='raised', cursor='dot', bg='black')
 gCan.create_polygon(0, 0, 0, barHeight, sumG, barHeight, sumG, 0, fill='green')
 gCan.grid(column=0, columnspan=2, row = 3, sticky='w', padx='5')
-gCan.tag_bind(gCan, "<B1-Motion>", lambda x,y: print('x', x, 'y', y))
+gCan.tag_bind(gCan, "<B1-Motion>", lambda x,y: printer(x, y))
  
 gCanStrVar = tk.StringVar()
 gCanStrVar.set(str(100))
@@ -151,10 +154,10 @@ def updateCanvas(fill):
     return lambda event:updateHeight(event.widget, event.x, fill)
 
 #rCan.bind("<Button-1>", updateCanvas('red'))
-rCan.tag_bind(rCan, "<B1-Motion>", lambda x,y:print('x', x, 'y', y))
+rCan.tag_bind(rCan, "<B1-Motion>", lambda x,y:printer( x, y))
 
 #gCan.bind("<Button-1>", updateCanvas('green'))
-gCan.tag_bind(gCan, "<Button1-Motion>", lambda x,y:print('x', x, 'y', y))
+gCan.tag_bind(gCan, "<Button1-Motion>", lambda x,y:printer(x, y))
 bCan.bind("<Button-1>", updateCanvas('blue'))
 
 
