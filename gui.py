@@ -150,11 +150,11 @@ def updateCanvas(fill):
     #t.start()
     return lambda event:updateHeight(event.widget, event.x, fill)
 
-rCan.bind("<Button-1>", updateCanvas('red'))
+#rCan.bind("<Button-1>", updateCanvas('red'))
 rCan.tag_bind(rCan, "<B1-Motion>", lambda x,y:print('x', x, 'y', y))
 
-gCan.bind("<Button-1>", updateCanvas('green'))
-gCan.tag_bind(gCan, "<B1-Motion>", lambda x,y:print('x', x, 'y', y))
+#gCan.bind("<Button-1>", updateCanvas('green'))
+gCan.tag_bind(gCan, "<Button1-Motion>", lambda x,y:print('x', x, 'y', y))
 bCan.bind("<Button-1>", updateCanvas('blue'))
 
 
