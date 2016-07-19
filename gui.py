@@ -43,37 +43,46 @@ offButton.grid(column = 0, columnspan = 1, row = 0, sticky='nsew')
 sumR = 100
 sumG = 100
 sumB = 100
+
 def printer(x, y):
    print ('x', x, 'y', y)
    return lambda event:1+2
 
 barHeight = '20'
 rCan = tk.Canvas(top, width='255', height=barHeight, relief='raised', bg='black', cursor='dot')
-rCan.create_polygon(0, 0, 0, barHeight, sumR, barHeight, sumR, 0, fill = 'red')
+rCanColorPoly = rCan.create_polygon(0, 0, 0, barHeight, sumR, barHeight, sumR, 0, fill = 'red')
+rCanBlackPoly = rCan.create_polygon(sumR, 0, sumR, barHeight, 255, barHeight, 255, 0, fill='black')
+rCan.itemconfig(rCanColorPoly, tags=('colorPoly'))
+rCan.itemconfig(rCanBlackPoly, tags=('blackPoly'))
 rCan.grid(column=0, columnspan=2, row = 2, sticky='w', padx='5')
 
 rCanStrVar = tk.StringVar()
 rCanStrVar.set(str(100))
-rLabel = tk.Label(top, anchor='center', bd=0, bg='black', cursor='dot', fg='red', textvariable=rCanStrVar)
+rCanLabel = tk.Label(top, anchor='center', bd=0, bg='black', cursor='cross', fg='red', textvariable=rCanStrVar)
 rLabel.grid(column = 2, row = 2, sticky='w')
 
 gCan = tk.Canvas(top, width='255', height=barHeight, relief='raised', cursor='dot', bg='black')
-gCan.create_polygon(0, 0, 0, barHeight, sumG, barHeight, sumG, 0, fill='green')
+gCanColorPoly = gCan.create_polygon(0, 0, 0, barHeight, sumG, barHeight, sumG, 0, fill='green')
+gCanBlackPoly = gCan.create_polygon(sumG, 0, sumG, barHeight, 255, barHeight, 255, 0, fill='black')
+gCan.itemconfig(gCanColorPoly, tags=('colorPoly'))
+gCan.itemconfig(gCanBlackPoly, tags=('blackPoly'))
 gCan.grid(column=0, columnspan=2, row = 3, sticky='w', padx='5')
-gCan.tag_bind(gCan, "<B1-Motion>", lambda x,y: printer(x, y))
- 
+
 gCanStrVar = tk.StringVar()
 gCanStrVar.set(str(100))
-gLabel = tk.Label(top, anchor='center', bd=0, cursor='dot', bg='black', fg='green', textvariable=gCanStrVar)
-gLabel.grid(column = 2, row = 3, sticky='w')
+gCanLabel = tk.Label(top, anchor='center', bd=0, cursor='dot', bg='black', fg='green', textvariable=gCanStrVar)
+gCanLabel.grid(column = 2, row = 3, sticky='w')
 
 bCan = tk.Canvas(top, width='255', height=barHeight, relief='raised', cursor='dot', bg='black')
-bCan.create_polygon(0, 0, 0, barHeight, sumB, barHeight, sumB, 0, fill='blue')
+bCanColorPoly = bCan.create_polygon(0, 0, 0, barHeight, sumB, barHeight, sumB, 0, fill='blue')
+bCanBlackPoly = bCan.create_polygon(sumB, 0, sumB, barHeight, 255, barHeight, 255, 0, fill='black')
+bCan.itemconfig(bCanColorPoly, tags=('colorPoly'))
+bCan.itemconfig(bCanBlackPoly, tags=('blackPoly'))
 bCan.grid(column=0, columnspan=2, row = 4, sticky='w', padx='5')
 
 bCanStrVar = tk.StringVar()
 bCanStrVar.set(str(100))
-bLabel = tk.Label(top, anchor='center', bd=0, cursor='dot', fg='blue', bg='black', textvariable=bCanStrVar)
+bCanLabel = tk.Label(top, anchor='center', bd=0, cursor='dot', fg='blue', bg='black', textvariable=bCanStrVar)
 bLabel.grid(column = 2, row = 4, sticky='w')
 
 
@@ -132,15 +141,31 @@ def resend():
    top.update()
 
 def updateHeight(can, val, _fill):
-   if _fill == 'red':
+    //Create new bar
+    colorPoly = can.create_polygon(0, 0, 0, barHeight, val, barHeight, val, 0, fill=_fill)
+    blackPoly = can.create_polygon(val, 0, val, barHeight, 255, barHeight, 255, 0, fill='black')
+    
+    //Remove old bar
+    can.delete('colorPoly')
+    can.delete('blackPoly')
+    
+    //Configure new bar
+    can.itemconfig(colorPoly, tags=('colorPoly'))
+    can.itemconfig(blackPoly, tags=('blackPoly'))
+    
+    if _fill == 'red':
       rCanStrVar.set(str(val))
-   elif _fill == 'green':
+#      rCanColorPoly = colorPoly
+#      rCanBlackPoly = blackPoly
+    elif _fill == 'green':
       gCanStrVar.set(str(val))
-   elif _fill == 'blue':
+#      gCanColorPoly = colorPoly
+#      gcanBlackPoly = blackPoly
+    elif _fill == 'blue':
       bCanStrVar.set(str(val))
-   can.create_polygon(0, 0, 0, barHeight, val, barHeight, val, 0, fill=_fill)
-   can.create_polygon(val, 0, val, barHeight, 255, barHeight, 255, 0, fill='black')
-   resend()
+#      bCanColorPoly = colorPoly
+#      bCanBlackPoly = blackPoly
+    resend()
      
 #t = threading.Timer(1, resend)
 def updateCanvas(fill):
@@ -154,10 +179,14 @@ def updateCanvas(fill):
     return lambda event:updateHeight(event.widget, event.x, fill)
 
 #rCan.bind("<Button-1>", updateCanvas('red'))
-rCan.tag_bind(rCan, "<B1-Motion>", lambda x,y:printer( x, y))
+rCan.tag_bind(rCan.find_withtag("colorPoly"), "<B1-Motion>", lambda x,y:printer( x, y))
+rCan.tag_bind(rCan.find_withtag("blackPoly"), "<B1-Motion>", lambda x,y:printer(x, y))
 
 #gCan.bind("<Button-1>", updateCanvas('green'))
 gCan.tag_bind(gCan, "<Button1-Motion>", lambda x,y:printer(x, y))
+gCan.tag_bind(gCan.find_withtag("blackPoly"), "<B1-Motion>", lambda x,y:printer(x, y))
+
+
 bCan.bind("<Button-1>", updateCanvas('blue'))
 
 
