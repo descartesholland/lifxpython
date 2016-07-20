@@ -59,7 +59,7 @@ rCan.grid(column=0, columnspan=2, row = 2, sticky='w', padx='5')
 rCanStrVar = tk.StringVar()
 rCanStrVar.set(str(100))
 rCanLabel = tk.Label(top, anchor='center', bd=0, bg='black', cursor='cross', fg='red', textvariable=rCanStrVar)
-rLabel.grid(column = 2, row = 2, sticky='w')
+rCanLabel.grid(column = 2, row = 2, sticky='w')
 
 gCan = tk.Canvas(top, width='255', height=barHeight, relief='raised', cursor='dot', bg='black')
 gCanColorPoly = gCan.create_polygon(0, 0, 0, barHeight, sumG, barHeight, sumG, 0, fill='green')
@@ -83,7 +83,7 @@ bCan.grid(column=0, columnspan=2, row = 4, sticky='w', padx='5')
 bCanStrVar = tk.StringVar()
 bCanStrVar.set(str(100))
 bCanLabel = tk.Label(top, anchor='center', bd=0, cursor='dot', fg='blue', bg='black', textvariable=bCanStrVar)
-bLabel.grid(column = 2, row = 4, sticky='w')
+bCanLabel.grid(column = 2, row = 4, sticky='w')
 
 
 top.columnconfigure(0, weight=3)
@@ -141,15 +141,15 @@ def resend():
    top.update()
 
 def updateHeight(can, val, _fill):
-    //Create new bar
+    #Create new bar
     colorPoly = can.create_polygon(0, 0, 0, barHeight, val, barHeight, val, 0, fill=_fill)
     blackPoly = can.create_polygon(val, 0, val, barHeight, 255, barHeight, 255, 0, fill='black')
     
-    //Remove old bar
+    #Remove old bar
     can.delete('colorPoly')
     can.delete('blackPoly')
     
-    //Configure new bar
+    #Configure new bar
     can.itemconfig(colorPoly, tags=('colorPoly'))
     can.itemconfig(blackPoly, tags=('blackPoly'))
     
