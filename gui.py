@@ -11,9 +11,10 @@ except ImportError:
    import tkinter as tk
    import queue as queue
    
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
 
-KAFKA_CONNECT = False
+LIFX_CONNECT = False
+KAFKA_CONNECT = True
 
 MIN_REFRESH_INTERVAL = 5
 LAST_UPDATE = 0
@@ -27,10 +28,10 @@ def _connected():
 MAXIMUM = 40.0
 buffSize = 30
 
-GPIO.setmode(GPIO.BCM)
+#GPIO.setmode(GPIO.BCM)
 
 top = tk.Tk()
-top.attributes("-fullscreen", True)
+#top.attributes("-fullscreen", True)
 top.configure(background = 'black')
 
 
@@ -43,10 +44,6 @@ offButton.grid(column = 0, columnspan = 1, row = 0, sticky='nsew')
 sumR = 100
 sumG = 100
 sumB = 100
-
-def printer(x, y):
-   print ('x', x, 'y', y)
-   return lambda event:1+2
 
 barHeight = '20'
 rCan = tk.Canvas(top, width='255', height=barHeight, relief='raised', bg='black', cursor='dot')
@@ -128,148 +125,68 @@ def RGBtoHSB(r, g, b):
 
 
 def resend():
-   print 'resend'
    if timer() > LAST_UPDATE + MIN_REFRESH_INTERVAL:
       hsb = RGBtoHSB(float(rCanStrVar.get()), float(gCanStrVar.get()), float(bCanStrVar.get()))
-      print('HSB', hsb[0], " ", hsb[1], " ", hsb[2])
       
-      lifx.set_light_state(hsb[0], hsb[1], hsb[2], 2700, timeout=2)
-      print('updated')
+      print 'HSB', (hsb[0], " ", hsb[1], " ", hsb[2])
+      
+      if LIFX_CONNECT:
+          print("Updating light(s)...")
+          lifx.set_light_state(hsb[0], hsb[1], hsb[2], 2400)
+                  
+      if KAFKA_CONNECT:
+          print "Publishing to Kafka..."
+          s = 'H'+str(round(hsb[0], 2))+'S'+str(round(hsb[1], 2))+'B'+str(round(hsb[2], 2))
+          producer.send('lifx', value=b''.join(s)).get(timeout=5)
    else:
-      print("Timer:", timer(), " prv:", LAST_UPDATE)
+        pass
    top.update_idletasks()
    top.update()
 
 def updateHeight(can, val, _fill):
     #Create new bar
-    colorPoly = can.create_polygon(0, 0, 0, barHeight, val, barHeight, val, 0, fill=_fill)
-    blackPoly = can.create_polygon(val, 0, val, barHeight, 255, barHeight, 255, 0, fill='black')
+    can.coords(can.find_withtag("colorPoly"), 0, 0, 0, barHeight, val, barHeight, val, 0)
+    can.coords(can.find_withtag("blackPoly"), val, 0, val, barHeight, 255, barHeight, 255, 0)
+
+    top.update_idletasks()
+    top.update()
+
+    hsb = RGBtoHSB(min(int(rCanStrVar.get()), 255), min(int(gCanStrVar.get()), 255), min(int(bCanStrVar.get()), 255))
     
-    #Remove old bar
-    can.delete('colorPoly')
-    can.delete('blackPoly')
-    
-    #Configure new bar
-    can.itemconfig(colorPoly, tags=('colorPoly'))
-    can.itemconfig(blackPoly, tags=('blackPoly'))
-    
-    if _fill == 'red':
-      rCanStrVar.set(str(val))
-#      rCanColorPoly = colorPoly
-#      rCanBlackPoly = blackPoly
-    elif _fill == 'green':
-      gCanStrVar.set(str(val))
-#      gCanColorPoly = colorPoly
-#      gcanBlackPoly = blackPoly
-    elif _fill == 'blue':
-      bCanStrVar.set(str(val))
-#      bCanColorPoly = colorPoly
-#      bCanBlackPoly = blackPoly
     resend()
-     
-#t = threading.Timer(1, resend)
-def updateCanvas(fill):
-    #if fill == 'red':
-    #    rCanStrVar.set(str(event.x))
-    #elif fill == 'green':
-    #    gCanStrVar.set(str(event.x))
-    #elif fill == 'blue':
-    #    bCanStrVar.set(str(event.x))
-    #t.start()
-    return lambda event:updateHeight(event.widget, event.x, fill)
 
-#rCan.bind("<Button-1>", updateCanvas('red'))
-rCan.tag_bind(rCan.find_withtag("colorPoly"), "<B1-Motion>", lambda x,y:printer( x, y))
-rCan.tag_bind(rCan.find_withtag("blackPoly"), "<B1-Motion>", lambda x,y:printer(x, y))
+#Attach Motion Event Listeners
 
-#gCan.bind("<Button-1>", updateCanvas('green'))
-gCan.tag_bind(gCan, "<Button1-Motion>", lambda x,y:printer(x, y))
-gCan.tag_bind(gCan.find_withtag("blackPoly"), "<B1-Motion>", lambda x,y:printer(x, y))
+#rCan.bind("<Button-1>", lambda event:updateHeight(event.widget, event.x, 'red'))
+rCan.tag_bind(rCan.find_withtag("colorPoly"), "<B1-Motion>", lambda event:updateHeight(rCan, event.x, 'red'))
+rCan.tag_bind(rCan.find_withtag("blackPoly"), "<B1-Motion>", lambda event:updateHeight(rCan, event.x, 'red'))
+
+#gCan.bind("<Button-1>", lambda event:updateHeight(event.widget, event.x, 'green'))
+gCan.tag_bind(gCan.find_withtag("colorPoly"), "<B1-Motion>", lambda event:updateHeight(gCan, event.x, 'green'))
+gCan.tag_bind(gCan.find_withtag("blackPoly"), "<B1-Motion>", lambda event: updateHeight(gCan, event.x, 'green'))
 
 
-bCan.bind("<Button-1>", updateCanvas('blue'))
-
-
-            
-# Main program
-lastUpdateTimestamp = timer()
-LAST_UPDATE = timer()
-if(KAFKA_CONNECT):
-   producer = KafkaProducer(bootstrap_servers='128.157.15.203:2181', client_id='R_PI', api_version="0.10")
+#bCan.bind("<Button-1>", lambda event:updateHeight(event.widget, event.x, 'blue'))
+bCan.tag_bind(bCan.find_withtag("colorPoly"), "<B1-Motion>", lambda event:updateHeight(bCan, event.x, 'blue'))
+bCan.tag_bind(bCan.find_withtag("blackPoly"), "<B1-Motion>", lambda event:updateHeight(bCan, event.x, 'blue'))
 
 
 buffR = queue.Queue()
 buffG = queue.Queue()
 buffB = queue.Queue()
 
+# Main program
+LAST_UPDATE = timer()
 
-#for i in range(0, buffSize):
-#   _temp = RC_Analog(22)*25
-#   buffR.put(_temp)
-#   sumR = sumR + _temp
-
-#   _temp = RC_Analog(27)*25
-#   buffG.put(_temp)
-#   sumG = sumG + _temp
-
-#   _temp = RC_Analog(17)*25
-#   buffB.put(_temp)
-#   sumB = sumB + _temp
+if(KAFKA_CONNECT):
+    producer = KafkaProducer(bootstrap_servers='10.0.0.177:9092', client_id='R_PI', api_version="0.10", max_block_ms=4999)
 
 
-updatemaster = 10
-#with lifx.run():
 if True:
-    #print "INSIDE"
-   mTimer = timer()
-   with lifx.run():
-      top.mainloop()
-   #while True:
-   #   pass
-      #try:
-         #analogReadR = (RC_Analog(22)-1)*25
-         #sumR-= buffR.get()
-         #sumR+= analogReadR
-         #buffR.put(analogReadR)
-         #buffR.task_done()
-         
-         #analogReadG = (RC_Analog(27)-1)*25
-         #sumG-= buffG.get()
-         #sumG+= analogReadG
-         #buffG.put(analogReadG)
-         #buffG.task_done()
-         
-         #analogReadB = (RC_Analog(17)-1)*25
-         #sumB-= buffB.get()
-         #sumB+= analogReadB
-         #buffB.put(analogReadB)
-         #buffB.task_done()
+#with lifx.run():
+    top.mainloop()
 
-         #avgR = sumR / float(buffSize)
-         #avgG = sumG / float(buffSize)
-         #avgB = sumB / float(buffSize)
-         
-         #updateHeight(rCan, avgR if avgR < 255 else 255, 'red')
-         #updateHeight(gCan, avgG if avgG < 255 else 255, 'green')
-         #updateHeight(bCan, avgB if avgB < 255 else 255, 'blue')
-         #top.update_idletasks()
-         #top.update()
 
-         #if timer() - mTimer > updatemaster:
-          #  print("Updating light(s)")
-           # hsb = RGBtoHSB(min(avgR, 255), min(avgG, 255), min(avgB, 255))
-            #lifx.set_light_state(hsb[0], hsb[1], hsb[2], 2400)
-            #print "updated"
-            #if KAFKA_CONNECT:
-              # producer.send('lifx', bytearray(('H'+hsb[0]+'S'+hsb[1]+'B'+hsb[2]), 'utf-8'))
-            #mTimer = timer()
-            
-            #s = str(analogReadR)
-            #s = s + " "
-            #s = s + str(analogReadG)
-            #s = s + " "
-            #s = s + str(analogReadB)
-            #print s
-      #except KeyboardInterrupt:
-       #  producer.close()
-        # GPIO.cleanup()
+
+
+
