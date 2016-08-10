@@ -15,6 +15,7 @@ except ImportError:
 
 LIFX_CONNECT = False
 KAFKA_CONNECT = True
+KAFKA_IP = '10.101.1.15:9092'
 
 MIN_REFRESH_INTERVAL = 5
 LAST_UPDATE = 0
@@ -186,7 +187,7 @@ buffB = queue.Queue()
 LAST_UPDATE = timer()
 
 if(KAFKA_CONNECT):
-    producer = KafkaProducer(bootstrap_servers='10.101.1.15:9092', client_id='R_PI', api_version="0.10", max_block_ms=4999)
+    producer = KafkaProducer(bootstrap_servers=KAFKA_IP, client_id='R_PI', api_version="0.10", max_block_ms=4999)
 
 
 if True:

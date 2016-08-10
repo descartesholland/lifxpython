@@ -13,14 +13,14 @@ except ImportError:
    
 #import RPi.GPIO as GPIO
 
-HUE_CONNECT = True
+HUE_CONNECT = False
 BRIDGE_IP = '10.101.1.21'
 if(HUE_CONNECT):
     bridge = Bridge(BRIDGE_IP)
 
 
 KAFKA_CONNECT = True
-KAFKA_IP = '10.101.1.15:9092'
+KAFKA_IP = '128.157.15.212:9092'
 if(KAFKA_CONNECT):
     producer = KafkaProducer(bootstrap_servers=KAFKA_IP, client_id='R_PI', api_version="0.10", max_block_ms=4999)
 
